@@ -35,7 +35,12 @@ function anchorsFor(
     return computeTiledAnchors({
       pageWidth: width,
       pageHeight: height,
-      angleDeg: config.rotation,
+      // Canvas y grows downward, so the text is drawn rotated by -rotation
+      // (see drawTextWatermarkOn). The tiling lattice must use the SAME sign,
+      // otherwise the text runs perpendicular to the lattice's row axis and
+      // long words on neighbouring rows overlap. pdf-lib (y-up) uses +rotation
+      // and matches its own +rotation text, so it needs no such negation.
+      angleDeg: -config.rotation,
       tileWidth: stampW,
       tileHeight: stampH,
       gapX: config.tileGap,
