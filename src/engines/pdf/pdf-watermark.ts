@@ -7,7 +7,11 @@ import { PDFDocument, StandardFonts, rgb, degrees } from "pdf-lib";
 import type { PDFFont, PDFImage } from "pdf-lib";
 import { WatermarkError, type WatermarkConfig } from "../../core/types";
 import { parseHexColor } from "../../core/color";
-import { computeTiledAnchors, computeSingleAnchor } from "../../core/text-layout";
+import {
+  computeTiledAnchors,
+  computeSingleAnchor,
+  TEXT_LINE_GAP_MIN,
+} from "../../core/text-layout";
 
 // pdf-lib holds the whole document in memory with no streaming, so a huge PDF
 // can OOM the tab (advisor risk). Reject early with a clear message instead.
@@ -94,19 +98,33 @@ export async function watermarkPdf(
   for (const page of pages) {
     const { width, height } = page.getSize();
 
-    // Stamp bounding size, in PDF points.
+    // Two heights, deliberately different for text:
+    //  - stampH is the glyph cap height, used ONLY to center the text on its
+    //    anchor (accurate vertical centering).
+    //  - tileH is the line box (full font size), used as the lattice row pitch
+    //    so consecutive diagonal lines keep a full line-height of separation.
+    // Conflating them (using cap height ~0.72*size as the row pitch) packed the
+    // lines too tightly and made a rotated text watermark overlap itself. The
+    // canvas engine already tiles on the full font size, so this also keeps the
+    // exported PDF consistent with the live preview.
     let stampW: number;
     let stampH: number;
+    let tileH: number;
     if (config.mode === "text" && font !== null) {
       stampW = font.widthOfTextAtSize(config.text, config.fontSize);
       stampH = font.heightAtSize(config.fontSize, { descender: false });
+      tileH = config.fontSize;
     } else if (logo !== null) {
       stampW = width * config.imageScale;
       stampH = stampW * (logo.height / logo.width);
+      tileH = stampH;
     } else {
       continue;
     }
 
+    // Text gets a guaranteed minimum line gap; a logo tiles isotropically.
+    const gapY =
+      config.mode === "text" ? Math.max(config.tileGap, TEXT_LINE_GAP_MIN) : config.tileGap;
     const anchors =
       config.layout === "tiled"
         ? computeTiledAnchors({
@@ -114,8 +132,9 @@ export async function watermarkPdf(
             pageHeight: height,
             angleDeg: config.rotation,
             tileWidth: stampW,
-            tileHeight: stampH,
-            gap: config.tileGap,
+            tileHeight: tileH,
+            gapX: config.tileGap,
+            gapY,
           })
         : [computeSingleAnchor(width, height, config.position, Math.max(stampW, stampH) / 2 + 24)];
 

@@ -4,7 +4,11 @@
 // WYSIWYG of the exported result. Pure drawing: the caller owns decode/encode.
 
 import type { WatermarkConfig } from "../../core/types";
-import { computeTiledAnchors, computeSingleAnchor } from "../../core/text-layout";
+import {
+  computeTiledAnchors,
+  computeSingleAnchor,
+  TEXT_LINE_GAP_MIN,
+} from "../../core/text-layout";
 import { parseHexColor } from "../../core/color";
 
 /** Both 2D context flavors expose the subset of the API we use. */
@@ -25,6 +29,7 @@ function anchorsFor(
   height: number,
   stampW: number,
   stampH: number,
+  gapY: number,
 ): { x: number; y: number }[] {
   if (config.layout === "tiled") {
     return computeTiledAnchors({
@@ -33,7 +38,8 @@ function anchorsFor(
       angleDeg: config.rotation,
       tileWidth: stampW,
       tileHeight: stampH,
-      gap: config.tileGap,
+      gapX: config.tileGap,
+      gapY,
     });
   }
   return [computeSingleAnchor(width, height, config.position, Math.max(stampW, stampH) / 2 + 24)];
@@ -53,7 +59,9 @@ export function drawTextWatermarkOn(
   const rot = -config.rotation * DEG_TO_RAD;
   const textWidth = ctx.measureText(config.text).width;
 
-  for (const anchor of anchorsFor(config, width, height, textWidth, config.fontSize)) {
+  // Text: guarantee a minimum line gap so rotated lines never collide.
+  const gapY = Math.max(config.tileGap, TEXT_LINE_GAP_MIN);
+  for (const anchor of anchorsFor(config, width, height, textWidth, config.fontSize, gapY)) {
     ctx.save();
     ctx.translate(anchor.x, anchor.y);
     ctx.rotate(rot);
@@ -74,7 +82,8 @@ export function drawImageWatermarkOn(
   const stampW = width * config.imageScale;
   const stampH = stampW * (logo.height / logo.width);
 
-  for (const anchor of anchorsFor(config, width, height, stampW, stampH)) {
+  // A logo tiles isotropically (no thin-line collision problem).
+  for (const anchor of anchorsFor(config, width, height, stampW, stampH, config.tileGap)) {
     ctx.save();
     ctx.translate(anchor.x, anchor.y);
     ctx.rotate(rot);

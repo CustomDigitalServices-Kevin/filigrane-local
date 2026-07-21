@@ -23,9 +23,26 @@ export interface TileParams {
   tileWidth: number;
   /** Bounding height of one stamp. */
   tileHeight: number;
-  /** Extra spacing as a fraction of the stamp size (>= 0). */
-  gap: number;
+  /**
+   * Extra spacing ALONG the text direction, as a fraction of tileWidth (>= 0):
+   * the space between repeated stamps on the same line.
+   */
+  gapX: number;
+  /**
+   * Extra spacing PERPENDICULAR to the text, as a fraction of tileHeight (>= 0):
+   * the space between lines. Text needs a larger gapY than gapX so long, thin
+   * words on adjacent diagonal lines never collide (a single isotropic gap
+   * cannot satisfy both a wide word and a tight line height).
+   */
+  gapY: number;
 }
+
+/**
+ * Minimum perpendicular gap for a TEXT watermark, so lines keep at least this
+ * much leading no matter how tight the user sets the spacing. 1.0 means the row
+ * pitch is at least 2x the font size (a full blank line between text lines).
+ */
+export const TEXT_LINE_GAP_MIN = 1.0;
 
 const DEG_TO_RAD = Math.PI / 180;
 
@@ -34,11 +51,11 @@ const DEG_TO_RAD = Math.PI / 180;
  * lattice. Guaranteed to cover the four page corners.
  */
 export function computeTiledAnchors(p: TileParams): Anchor[] {
-  const { pageWidth, pageHeight, angleDeg, tileWidth, tileHeight, gap } = p;
+  const { pageWidth, pageHeight, angleDeg, tileWidth, tileHeight, gapX, gapY } = p;
 
   // Degenerate stamps would make the steps zero and loop forever. Guard.
-  const stepX = Math.max(tileWidth * (1 + gap), 1);
-  const stepY = Math.max(tileHeight * (1 + gap), 1);
+  const stepX = Math.max(tileWidth * (1 + gapX), 1);
+  const stepY = Math.max(tileHeight * (1 + gapY), 1);
 
   const rad = angleDeg * DEG_TO_RAD;
   const cos = Math.cos(rad);

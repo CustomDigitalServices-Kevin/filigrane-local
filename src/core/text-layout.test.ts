@@ -12,7 +12,8 @@ const base: TileParams = {
   angleDeg: 0,
   tileWidth: 100,
   tileHeight: 20,
-  gap: 0,
+  gapX: 0,
+  gapY: 0,
 };
 
 describe("computeTiledAnchors", () => {
@@ -54,10 +55,29 @@ describe("computeTiledAnchors", () => {
     }
   });
 
-  it("widens spacing when gap increases", () => {
-    const tight = computeTiledAnchors({ ...base, gap: 0 }).length;
-    const loose = computeTiledAnchors({ ...base, gap: 1 }).length;
+  it("widens spacing (fewer stamps) when gapX increases", () => {
+    const tight = computeTiledAnchors({ ...base, gapX: 0 }).length;
+    const loose = computeTiledAnchors({ ...base, gapX: 1 }).length;
     expect(loose).toBeLessThan(tight);
+  });
+
+  it("widens spacing (fewer stamps) when gapY increases", () => {
+    const tight = computeTiledAnchors({ ...base, gapY: 0 }).length;
+    const loose = computeTiledAnchors({ ...base, gapY: 1 }).length;
+    expect(loose).toBeLessThan(tight);
+  });
+
+  it("gapX and gapY act on independent axes", () => {
+    // At angle 0, gapX controls x spacing and gapY controls y spacing.
+    const rowXSpacing = (anchors: { x: number; y: number }[]): number => {
+      const row = anchors
+        .filter((a) => Math.abs(a.y - 400) < 1e-6)
+        .map((a) => a.x)
+        .sort((a, b) => a - b);
+      return (row[1] ?? 0) - (row[0] ?? 0);
+    };
+    // Increasing only gapY must not change the along-x spacing.
+    expect(rowXSpacing(computeTiledAnchors({ ...base, gapY: 3 }))).toBeCloseTo(100, 5);
   });
 
   it("never loops forever on a degenerate (zero-size) stamp", () => {
