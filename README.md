@@ -38,3 +38,8 @@ The E2E suite serves the production build statically and asserts, among other th
 ## License
 
 [MIT](./LICENSE) © 2026 Custom Digital Services (Kevin Tomas)
+
+## About
+
+Built and maintained by [Kevin Tomas](https://www.custom-digital-services.com/?utm_source=github&utm_medium=readme&utm_campaign=filigrane-local), freelance Power Platform and Microsoft AI consultant (Custom Digital Services).
+Try it online: [www.custom-digital-services.com/outils/filigrane](https://www.custom-digital-services.com/outils/filigrane/?utm_source=github&utm_medium=readme&utm_campaign=filigrane-local). More free tools: [www.custom-digital-services.com/outils](https://www.custom-digital-services.com/outils/?utm_source=github&utm_medium=readme&utm_campaign=filigrane-local)
